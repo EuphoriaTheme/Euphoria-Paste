@@ -70,7 +70,7 @@
     "*.{js,json,md,css,html,yml,yaml}": [
       "prettier --write"
     ],
-    "*.js": [
+    "**/!(*.min).js": [
       "eslint --fix"
     ]
   },
