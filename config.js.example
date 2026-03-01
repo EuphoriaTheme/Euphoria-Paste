@@ -1,31 +1,35 @@
 export default {
   "host": "0.0.0.0",
   "port": 8080,
-  "discordWebhookUrl": "https://discord.com/api/webhooks/123151413/asdsad",
+    "discordWebhookUrl": null,
+    "enableDiscordLogging": false,
   "keyLength": 10,
   "maxLength": 400000,
   "staticMaxAge": 86400,
+    "postTimeoutMs": 15000,
+    "requestTimeoutMs": 30000,
+    "headersTimeoutMs": 60000,
   "recompressStaticAssets": true,
   "logging": [
-      {
-          "level": "verbose",
-          "type": "Console",
-          "colorize": true
-      }
+        {
+            "level": "verbose",
+            "type": "Console",
+            "colorize": true
+        }
   ],
   "keyGenerator": {
-      "type": "phonetic"
+        "type": "phonetic"
   },
   "rateLimits": {
-      "categories": {
-          "normal": {
-              "totalRequests": 500,
-              "every": 60000
-          }
+        "categories": {
+            "normal": {
+                "totalRequests": 500,
+                "every": 60000
       }
+        }
   },
   "storage": {
-      "type": "file"
+        "type": "file"
   },
-  "documents": {} // Add this to avoid the undefined error
+    "documents": {}
 };

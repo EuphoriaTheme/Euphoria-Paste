@@ -1,120 +1,161 @@
- 
-# Euphoria Paste (Haste)
+# Euphoria Paste (Haste Fork)
 
-Euphoria Paste, is an open-source pastebin software written in node.js forked from the official Haste Repository, it is easily
-installable in any network.  It can be backed by either redis or filesystem,
-and has a very easy adapter interface for other stores.
+Euphoria Paste is an open-source pastebin server written in Node.js and forked from Haste.
+It supports multiple storage backends and includes a modernized frontend, structured logging,
+health checks, and safer runtime defaults.
 
-## Additions Compared to Haste:
+## Highlights
 
-* Alter UI for accessibility ✅
-* UI changes for Mobile ✅
-* Performance Upgrades ✅
-* Easier Brand Configuration 
-* Upgraded to use ES Modules ✅
-* Migrated from Winston to Pino ✅
-* Discord Webhooks Added for Additional Logging ✅
-* Improved Logging, Migrated to Pino-Pretty ✅
-* Added Line, Word & Character Count ✅
+- ES Modules runtime
+- Mobile-friendly UI updates
+- Line/word/character counters
+- Request tracing with `X-Request-Id`
+- `GET /health` endpoint
+- Graceful shutdown handling
+- Optional Discord webhook logging (explicitly gated)
+- Security-focused runtime headers and request limits
 
+## Requirements
 
-## Tested Browsers
+- Node.js `>=18`
 
-* Chrome - Version 131.0.6778.205 (Official Build) (64-bit)
-* Opera GX - Level 6 Core: 115.0.5322.124
-* Microsoft Edge - Version 131.0.2903.112 (Official build) (64-bit)
+## Quick Start
 
-## Tested File Storages
-Other Types are unable to be tested by me, so if you are able to, to help development, please do.
+1. Install dependencies:
 
-* File Directory
+   ```bash
+   npm install
+   ```
 
+2. Start the server:
 
-## Installation
+   ```bash
+   npm start
+   ```
 
-1.  Download the package, and expand it
-2.  Explore the settings inside of config.js, but the defaults should be good
-3.  `npm install`
-4.  `npm start` (you may specify an optional `<config-path>` as well)
+3. Open the app:
 
-## Settings
+   ```text
+   http://localhost:8080
+   ```
 
-* `host` - the host the server runs on (default localhost)
-* `port` - the port the server runs on (default 7777)
-* `discordWebhookUrl` - Webhook URL to send Logging to.
-* `keyLength` - the length of the keys to user (default 10)
-* `maxLength` - maximum length of a paste (default 400000)
-* `staticMaxAge` - max age for static assets (86400)
-* `recompressStaticAssets` - whether or not to compile static js assets (true)
-* `documents` - static documents to serve in addition to static assets. These will never expire.
-* `storage` - storage options (see below)
-* `logging` - logging preferences
-* `keyGenerator` - key generator options (see below)
-* `rateLimits` - settings for rate limiting (see below)
+### Config Bootstrap Behavior
 
-## Rate Limiting
+- The app expects `config.js`.
+- If `config.js` is missing, the server automatically copies `config.js.example` to `config.js` on startup.
+- `config.js` is ignored by git so local secrets/settings stay local.
 
-When present, the `rateLimits` option enables built-in rate limiting courtesy
-of `connect-ratelimit`.  Any of the options supported by that library can be
-used and set in `config.js`.
+## Scripts
 
-See the README for [connect-ratelimit](https://github.com/dharmafly/connect-ratelimit)
-for more information!
+- `npm start` — start server
+- `npm run dev` — start with auto-reload (`nodemon`)
+- `npm run lint` — lint maintained server/store/test files
+- `npm test` — run smoke tests
+- `npm run format` — format files with Prettier
+- `npm run format:check` — check formatting without changing files
 
-## Key Generation
+## API
 
-### Phonetic
+### Health
 
-Attempts to generate phonetic keys, similar to `pwgen`
+`GET /health`
 
-``` json
+Example response:
+
+```json
 {
-  "type": "phonetic"
+  "status": "ok",
+  "requestId": "f8f5f8c1-4bb0-4d76-9a13-0d0cb5e1f893"
 }
 ```
 
-### Random
+### Create Document
 
-Generates a random key
+`POST /documents` (plain text body)
 
-``` json
+Success response:
+
+```json
 {
-  "type": "random",
-  "keyspace": "abcdef"
+  "key": "exampleKey",
+  "requestId": "0a4d2fef-37b0-4100-9077-97d3642b4da7"
 }
 ```
 
-The _optional_ keySpace argument is a string of acceptable characters
-for the key.
+### Read Document JSON
 
-## Storage
+`GET /documents/:id`
 
-### File
+Success response:
 
-To use file storage (the default) change the storage section in `config.js` to
-something like:
-
-``` json
+```json
 {
-  "path": "./data",
-  "type": "file"
+  "data": "document contents",
+  "key": "exampleKey",
+  "requestId": "4e946b8e-5ebc-46df-a937-3b8e10f145ca"
 }
 ```
 
-where `path` represents where you want the files stored.
+### Read Raw
 
-File storage currently does not support paste expiration, you can follow [#191](https://github.com/seejohnrun/haste-server/issues/191) for status updates.
+`GET /raw/:id`
+
+Returns plain text body.
+
+### Error Responses
+
+Error payloads now include request tracing:
+
+```json
+{
+  "message": "Document not found.",
+  "requestId": "40ea3f76-e4ac-4b85-9d03-f8e1d1507ef2"
+}
+```
+
+## Key Runtime Settings
+
+Configured in `config.js` (based on `config.js.example`):
+
+- `host` — bind host (default `0.0.0.0`)
+- `port` — bind port (default `8080`)
+- `keyLength` — generated document key length
+- `maxLength` — max document body length
+- `staticMaxAge` — static asset cache max-age seconds
+- `recompressStaticAssets` — minify static JS on startup
+- `postTimeoutMs` — upload timeout for `POST /documents`
+- `requestTimeoutMs` — Node server request timeout
+- `headersTimeoutMs` — Node server headers timeout
+- `documents` — static preloaded documents map
+- `storage` — storage backend config
+- `rateLimits` — connect-ratelimit settings
+- `discordWebhookUrl` — webhook URL
+- `enableDiscordLogging` — must be `true` to forward Discord logs
+
+Environment variable overrides used by server:
+
+- `PORT`, `HOST`
+- `STORAGE`, `STORAGE_TYPE`
+- `DISCORD_WEBHOOK_URL`
+- `ENABLE_DISCORD_LOGGING`
+- `POST_TIMEOUT_MS`, `REQUEST_TIMEOUT_MS`, `HEADERS_TIMEOUT_MS`
+
+## Storage Backends
+
+Set `storage.type` in `config.js`.
+
+### File (Default)
+
+```json
+{
+  "type": "file",
+  "path": "./data"
+}
+```
 
 ### Redis
 
-To use redis storage you must install the `redis` package in npm, and have
-`redis-server` running on the machine.
-
-`npm install redis`
-
-Once you've done that, your config section should look like:
-
-``` json
+```json
 {
   "type": "redis",
   "host": "localhost",
@@ -123,72 +164,27 @@ Once you've done that, your config section should look like:
 }
 ```
 
-You can also set an `expire` option to the number of seconds to expire keys in.
-This is off by default, but will constantly kick back expirations on each view
-or post.
-
-All of which are optional except `type` with very logical default values.
-
-If your Redis server is configured for password authentification, use the `password` field.
-
 ### Postgres
 
-To use postgres storage you must install the `pg` package in npm
-
-`npm install pg`
-
-Once you've done that, your config section should look like:
-
-``` json
+```json
 {
   "type": "postgres",
   "connectionUrl": "postgres://user:password@host:5432/database"
 }
 ```
 
-You can also just set the environment variable for `DATABASE_URL` to your database connection url.
-
-You will have to manually add a table to your postgres database:
-
-`create table entries (id serial primary key, key varchar(255) not null, value text not null, expiration int, unique(key));`
-
-You can also set an `expire` option to the number of seconds to expire keys in.
-This is off by default, but will constantly kick back expirations on each view
-or post.
-
-All of which are optional except `type` with very logical default values.
-
 ### MongoDB
 
-To use mongodb storage you must install the 'mongodb' package in npm
-
-`npm install mongodb`
-
-Once you've done that, your config section should look like:
-
-``` json
+```json
 {
   "type": "mongo",
   "connectionUrl": "mongodb://localhost:27017/database"
 }
 ```
 
-You can also just set the environment variable for `DATABASE_URL` to your database connection url.
-
-Unlike with postgres you do NOT have to create the table in your mongo database prior to running.
-
-You can also set an `expire` option to the number of seconds to expire keys in.
-This is off by default, but will constantly kick back expirations on each view or post.
-
 ### Memcached
 
-To use memcache storage you must install the `memcached` package via npm
-
-`npm install memcached`
-
-Once you've done that, your config section should look like:
-
-``` json
+```json
 {
   "type": "memcached",
   "host": "127.0.0.1",
@@ -196,21 +192,9 @@ Once you've done that, your config section should look like:
 }
 ```
 
-You can also set an `expire` option to the number of seconds to expire keys in.
-This behaves just like the redis expirations, but does not push expirations
-forward on GETs.
-
-All of which are optional except `type` with very logical default values.
-
 ### RethinkDB
 
-To use the RethinkDB storage system, you must install the `rethinkdbdash` package via npm
-
-`npm install rethinkdbdash`
-
-Once you've done that, your config section should look like this:
-
-``` json
+```json
 {
   "type": "rethinkdb",
   "host": "127.0.0.1",
@@ -219,35 +203,15 @@ Once you've done that, your config section should look like this:
 }
 ```
 
-In order for this to work, the database must be pre-created before the script is ran.
-Also, you must create an `uploads` table, which will store all the data for uploads.
-
-You can optionally add the `user` and `password` properties to use a user system.
-
 ### Google Datastore
 
-To use the Google Datastore storage system, you must install the `@google-cloud/datastore` package via npm
-
-`npm install @google-cloud/datastore`
-
-Once you've done that, your config section should look like this:
-
-``` json
+```json
 {
   "type": "google-datastore"
 }
 ```
 
-Authentication is handled automatically by [Google Cloud service account credentials](https://cloud.google.com/docs/authentication/getting-started), by providing authentication details to the GOOGLE_APPLICATION_CREDENTIALS environmental variable.
-
 ### Amazon S3
-
-To use [Amazon S3](https://aws.amazon.com/s3/) as a storage system, you must
-install the `aws-sdk` package via npm:
-
-`npm install aws-sdk`
-
-Once you've done that, your config section should look like this:
 
 ```json
 {
@@ -257,34 +221,50 @@ Once you've done that, your config section should look like this:
 }
 ```
 
-Authentication is handled automatically by the client. Check
-[Amazon's documentation](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-credentials-node.html)
-for more information. You will need to grant your role these permissions to
-your bucket:
+Uses AWS SDK v3 (`@aws-sdk/client-s3`).
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": [
-                "s3:GetObject",
-                "s3:PutObject"
-            ],
-            "Effect": "Allow",
-            "Resource": "arn:aws:s3:::your-bucket-name-goes-here/*"
-        }
-    ]
-}
+## CI & Security
+
+Workflow: `.github/workflows/ci.yml`
+
+Runs on push, PR, and weekly schedule:
+
+- `npm ci`
+- `npm run lint`
+- `npm test`
+- `npm audit --omit=dev`
+
+## Local Redis via Docker Compose
+
+This repo includes a Redis profile for local backend testing:
+
+```bash
+docker compose --profile local-redis up -d
 ```
 
+Then configure `storage.type` to `redis` in `config.js`.
+
+## Troubleshooting
+
+### `Cannot find module './config.js'`
+
+Run `npm start` once; the server auto-creates `config.js` from `config.js.example` if needed.
+
+### Port already in use
+
+Change `port` in `config.js` or set `PORT` env var.
+
+### Favicon/logo not loading
+
+The app uses local static assets (`static/favicon.ico`, `static/logo.png`).
+Hard refresh browser cache if needed.
 
 ## Author
 
 Rep Graphics <repgraphics@euphoriadevelopment.uk>
 
-### Other components:
+## Third-Party Components
 
-* jQuery: MIT/GPL license
-* highlight.js: Copyright © 2006, Ivan Sagalaev
-* highlightjs-coffeescript: WTFPL - Copyright © 2011, Dmytrii Nagirniak
+- jQuery: MIT/GPL
+- highlight.js: Copyright © 2006 Ivan Sagalaev
+- highlightjs-coffeescript: WTFPL, Copyright © 2011 Dmytrii Nagirniak
