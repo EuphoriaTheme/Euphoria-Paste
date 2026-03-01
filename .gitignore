@@ -6,4 +6,3 @@ data
 *.DS_Store
 .env
 config.js
-package-lock.json
